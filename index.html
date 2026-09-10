@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บันทึกค่าใช้จ่ายเที่ยวต่างประเทศ (เอก & ปลา)</title>
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 24px; }
+        header h1 { font-size: 1.8rem; margin-bottom: 6px; }
+        header p { color: var(--text-muted); font-size: 0.95rem; }
+        .card { background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid var(--border-color); }
+        .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 0.875rem; font-weight: 500; }
+        input, select { padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.95rem; outline: none; }
+        input:focus, select:focus { border-color: var(--primary-color); }
+        .btn { background-color: var(--primary-color); color: white; padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; width: 100%; margin-top: 12px; transition: 0.2s; }
+        .btn:hover { background-color: var(--primary-hover); }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+        .summary-box { background: #f1f5f9; padding: 16px; border-radius: 10px; text-align: center; }
+        .summary-box.eak { background: #e0f2fe; color: #0369a1; }
+        .summary-box.pla { background: #fce7f3; color: #be185d; }
+        .summary-box.settlement { background: #fef3c7; color: #b45309; grid-column: 1 / -1; }
+        .summary-box .amount { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left; }
+        th, td { padding: 12px; border-bottom: 1px solid var(--border-color); }
+        th { background-color: #f8fafc; color: var(--text-muted); }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+        .badge-eak { background-color: #e0f2fe; color: #0369a1; }
+        .badge-pla { background-color: #fce7f3; color: #be185d; }
+        .btn-delete { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+        .empty-state { text-align: center; padding: 30px; color: var(--text-muted); }
+        .status-msg { margin-top: 8px; font-size: 0.875rem; text-align: center; }
+        .action-btns { display: flex; gap: 10px; margin-top: 12px; }
+        .btn-secondary { background: #64748b; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>✈️ บันทึกค่าใช้จ่ายเที่ยวต่างประเทศ</h1>
+        <p>บันทึกและคำนวณยอดเคลียร์เงินอัตโนมัติ (เอก & ปลา)</p>
+    </header>
+
+    <!-- ตั้งค่าประเทศและอัตราแลกเปลี่ยน -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div class="card-title" style="margin-bottom: 0;">🌐 ตั้งค่าประเทศและอัตราแลกเปลี่ยน</div>
+            <button onclick="resetAllData()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600;">🗑️ ล้างข้อมูลทริป</button>
+        </div>
+        <div class="grid">
+            <div class="form-group">
+                <label for="country">ประเทศที่ไปเที่ยว</label>
+                <select id="country" onchange="fetchRealtimeRate()">
+                    <option value="🇯🇵 ญี่ปุ่น" data-currency="JPY" data-rate="0.23">🇯🇵 ญี่ปุ่น (JPY)</option>
+                    <option value="🇰🇷 เกาหลีใต้" data-currency="KRW" data-rate="0.026">🇰🇷 เกาหลีใต้ (KRW)</option>
+                    <option value="🇹🇼 ไต้หวัน" data-currency="TWD" data-rate="1.10">🇹🇼 ไต้หวัน (TWD)</option>
+                    <option value="🇻🇳 เวียดนาม" data-currency="VND" data-rate="0.0014">🇻🇳 เวียดนาม (VND)</option>
+                    <option value="🇸🇬 สิงคโปร์" data-currency="SGD" data-rate="26.50">🇸🇬 สิงคโปร์ (SGD)</option>
+                    <option value="🇺🇸 สหรัฐอเมริกา" data-currency="USD" data-rate="34.50">🇺🇸 สหรัฐอเมริกา (USD)</option>
+                    <option value="🇪🇺 ยุโรป" data-currency="EUR" data-rate="37.50">🇪🇺 ยุโรป (EUR)</option>
+                    <option value="🇬🇧 อังกฤษ" data-currency="GBP" data-rate="44.00">🇬🇧 อังกฤษ (GBP)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label for="exchangeRate">อัตราแลกเปลี่ยน (1 <span id="currencyLabel">JPY</span> = ? THB)</label>
+                    <span id="rateStatus" style="font-size: 0.75rem; color: #64748b;"></span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <input type="number" id="exchangeRate" step="0.0001" value="0.23" style="flex: 1;">
+                    <button type="button" onclick="fetchRealtimeRate()" style="background: #e2e8f0; border: 1px solid var(--border-color); border-radius: 8px; padding: 0 12px; cursor: pointer; font-size: 0.9rem;">🔄 อัปเดตเรท</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ฟอร์มเพิ่มรายการ -->
+    <div class="card">
+        <div class="card-title">➕ เพิ่มรายการค่าใช้จ่าย</div>
+        <form id="expenseForm" onsubmit="addExpense(event)">
+            <div class="grid">
+                <div class="form-group">
+                    <label for="item">รายการค่าใช้จ่าย</label>
+                    <input type="text" id="item" placeholder="เช่น ค่าโรงแรม, ค่าอาหาร" required>
+                </div>
+                <div class="form-group">
+                    <label for="foreignAmount">จำนวนเงิน (<span class="currentCurrency">JPY</span>)</label>
+                    <input type="number" id="foreignAmount" step="0.01" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label for="payer">ใครเป็นคนจ่าย?</label>
+                    <select id="payer" required>
+                        <option value="เอก">👤 เอก</option>
+                        <option value="ปลา">👤 ปลา</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="split">การหารค่าใช้จ่าย</label>
+                    <select id="split" required>
+                        <option value="50/50">🤝 หารคนละครึ่ง (50 / 50)</option>
+                        <option value="เอกจ่ายคนเดียว">เอก จ่ายคนเดียว</option>
+                        <option value="ปลาจ่ายคนเดียว">ปลา จ่ายคนเดียว</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn">💾 บันทึกรายการ</button>
+            <div id="statusMsg" class="status-msg"></div>
+        </form>
+    </div>
+
+    <!-- สรุปผลการเคลียร์เงิน -->
+    <div class="card">
+        <div class="card-title">📊 สรุปยอดเงินรวม (บาท)</div>
+        <div class="summary-grid">
+            <div class="summary-box">
+                <div>ค่าใช้จ่ายทั้งหมด</div>
+                <div class="amount" id="totalExpense">฿0.00</div>
+            </div>
+            <div class="summary-box eak">
+                <div>เอก จ่ายไปแล้ว</div>
+                <div class="amount" id="eakPaid">฿0.00</div>
+            </div>
+            <div class="summary-box pla">
+                <div>ปลา จ่ายไปแล้ว</div>
+                <div class="amount" id="plaPaid">฿0.00</div>
+            </div>
+            <div class="summary-box settlement">
+                <div>สรุปการเคลียร์เงิน</div>
+                <div class="amount" id="settlementText">-</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ตารางรายการ -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div class="card-title" style="margin-bottom: 0;">📋 รายการทั้งหมด</div>
+            <button onclick="exportToCSV()" class="btn-secondary">📥 ส่งออกเป็นไฟล์ CSV (Excel)</button>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>รายการ</th>
+                        <th>ผู้จ่าย</th>
+                        <th>จำนวนเงินต่างประเทศ</th>
+                        <th>คิดเป็นเงินบาท (THB)</th>
+                        <th>การหาร</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="expenseList"></tbody>
+            </table>
+        </div>
+        <div id="emptyState" class="empty-state">ยังไม่มีรายการค่าใช้จ่าย</div>
+    </div>
+</div>
+
+<script>
+    let expenses = JSON.parse(localStorage.getItem('standalone_trip_expenses')) || [];
+
+    // ดึงอัตราแลกเปลี่ยนแบบ Real-time จาก API
+    async function fetchRealtimeRate() {
+        const countrySelect = document.getElementById('country');
+        const selectedOption = countrySelect.options[countrySelect.selectedIndex];
+        const currency = selectedOption.getAttribute('data-currency');
+        const defaultRate = selectedOption.getAttribute('data-rate');
+        const rateStatus = document.getElementById('rateStatus');
+
+        document.getElementById('currencyLabel').innerText = currency;
+        document.querySelectorAll('.currentCurrency').forEach(el => el.innerText = currency);
+        
+        rateStatus.style.color = '#64748b';
+        rateStatus.innerText = '⏳ กำลังโหลดเรท...';
+
+        try {
+            const response = await fetch(`https://open.er-api.com/v6/latest/THB`);
+            const data = await response.json();
+
+            if (data && data.rates && data.rates[currency]) {
+                const thbPerUnit = (1 / data.rates[currency]).toFixed(4);
+                document.getElementById('exchangeRate').value = thbPerUnit;
+                rateStatus.style.color = '#16a34a';
+                rateStatus.innerText = '⚡ เรทสดปัจจุบัน';
+            } else {
+                throw new Error('ไม่พบข้อมูลสกุลเงิน');
+            }
+        } catch (err) {
+            console.warn('ไม่สามารถดึงเรทได้ ใช้ค่าเริ่มต้นแทน:', err);
+            document.getElementById('exchangeRate').value = defaultRate;
+            rateStatus.style.color = '#dc2626';
+            rateStatus.innerText = '⚠️ ใช้เรทสำรอง';
+        }
+    }
+
+    function addExpense(event) {
+        event.preventDefault();
+
+        const statusMsg = document.getElementById('statusMsg');
+        const item = document.getElementById('item').value;
+        const foreignAmount = parseFloat(document.getElementById('foreignAmount').value);
+        const rate = parseFloat(document.getElementById('exchangeRate').value);
+        const payer = document.getElementById('payer').value;
+        const split = document.getElementById('split').value;
+        const countrySelect = document.getElementById('country');
+        const countryName = countrySelect.value;
+        const currency = countrySelect.options[countrySelect.selectedIndex].getAttribute('data-currency');
+        const thbAmount = foreignAmount * rate;
+        const today = new Date().toLocaleDateString('th-TH');
+
+        const newExpense = {
+            id: Date.now(),
+            date: today,
+            item,
+            countryCurrency: `${countryName} (${currency})`,
+            foreignAmount,
+            currency,
+            rate,
+            thbAmount,
+            payer,
+            split
+        };
+
+        expenses.push(newExpense);
+        saveAndRender();
+
+        document.getElementById('item').value = '';
+        document.getElementById('foreignAmount').value = '';
+        
+        statusMsg.style.color = '#16a34a';
+        statusMsg.innerText = '✅ บันทึกรายการสำเร็จ!';
+        setTimeout(() => statusMsg.innerText = '', 2500);
+    }
+
+    function deleteExpense(id) {
+        expenses = expenses.filter(exp => exp.id !== id);
+        saveAndRender();
+    }
+
+    function resetAllData() {
+        if (expenses.length === 0) {
+            alert('ยังไม่มีรายการให้ล้างข้อมูล');
+            return;
+        }
+
+        const confirmReset = confirm('⚠️ คุณต้องการล้างรายการค่าใช้จ่ายทั้งหมดในเครื่องใช่หรือไม่?');
+        
+        if (confirmReset) {
+            expenses = [];
+            localStorage.removeItem('standalone_trip_expenses');
+            saveAndRender();
+            alert('ล้างข้อมูลเรียบร้อยแล้ว!');
+        }
+    }
+
+    function saveAndRender() {
+        localStorage.setItem('standalone_trip_expenses', JSON.stringify(expenses));
+        renderList();
+        calculateSummary();
+    }
+
+    function renderList() {
+        const tbody = document.getElementById('expenseList');
+        const emptyState = document.getElementById('emptyState');
+        tbody.innerHTML = '';
+
+        if (expenses.length === 0) {
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+
+        expenses.forEach(exp => {
+            const tr = document.createElement('tr');
+            const badgeClass = exp.payer === 'เอก' ? 'badge-eak' : 'badge-pla';
+
+            tr.innerHTML = `
+                <td><strong>${exp.item}</strong></td>
+                <td><span class="badge ${badgeClass}">${exp.payer}</span></td>
+                <td>${exp.foreignAmount.toLocaleString('en-US', {minimumFractionDigits: 2})} ${exp.currency}</td>
+                <td><strong>฿${exp.thbAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+                <td>${exp.split}</td>
+                <td><button class="btn-delete" onclick="deleteExpense(${exp.id})">ลบ</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function calculateSummary() {
+        let totalExpense = 0, eakPaid = 0, plaPaid = 0, eakShare = 0, plaShare = 0;
+
+        expenses.forEach(exp => {
+            totalExpense += exp.thbAmount;
+            if (exp.payer === 'เอก') eakPaid += exp.thbAmount;
+            else if (exp.payer === 'ปลา') plaPaid += exp.thbAmount;
+
+            if (exp.split === '50/50') {
+                eakShare += exp.thbAmount / 2;
+                plaShare += exp.thbAmount / 2;
+            } else if (exp.split === 'เอกจ่ายคนเดียว') {
+                eakShare += exp.thbAmount;
+            } else if (exp.split === 'ปลาจ่ายคนเดียว') {
+                plaShare += exp.thbAmount;
+            }
+        });
+
+        document.getElementById('totalExpense').innerText = `฿${totalExpense.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('eakPaid').innerText = `฿${eakPaid.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('plaPaid').innerText = `฿${plaPaid.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+        const settlementText = document.getElementById('settlementText');
+        const diff = eakPaid - eakShare;
+
+        if (Math.abs(diff) < 0.01) {
+            settlementText.innerText = 'ยอดเงินเสมอกัน ไม่ต้องโอนเงินคืน';
+        } else if (diff > 0) {
+            settlementText.innerText = `ปลา ต้องโอนให้ เอก ฿${diff.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        } else {
+            settlementText.innerText = `เอก ต้องโอนให้ ปลา ฿${Math.abs(diff).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+    }
+
+    // ฟังก์ชันส่งออกเป็น CSV สำหรับเปิดใน Excel
+    function exportToCSV() {
+        if (expenses.length === 0) {
+            alert('ไม่มีข้อมูลให้ส่งออก');
+            return;
+        }
+
+        let csvContent = "\uFEFFวันที่,รายการ,ผู้จ่าย,จำนวนเงินต่างประเทศ,สกุลเงิน,อัตราแลกเปลี่ยน,คิดเป็นเงินบาท,การหาร\n";
+
+        expenses.forEach(exp => {
+            csvContent += `"${exp.date}","${exp.item}","${exp.payer}",${exp.foreignAmount},"${exp.currency}",${exp.rate},${exp.thbAmount},"${exp.split}"\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `บันทึกค่าใช้จ่ายทริป_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    fetchRealtimeRate();
+    renderList();
+    calculateSummary();
+</script>
+
+</body>
+</html>
